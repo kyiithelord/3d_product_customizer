@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>3D Product Customizer</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <meta name="color-scheme" content="dark light" />
+    <link rel="preconnect" href="https://unpkg.com" crossorigin>
+  </head>
+  <body>
+    <div id="app">
+      <header class="toolbar">
+        <div class="group">
+          <label>
+            Base Color
+            <input type="color" id="baseColor" value="#888888" />
+          </label>
+        </div>
+        <div class="group">
+          <label>
+            Material Preset
+            <select id="materialPreset">
+              <option value="plastic" selected>Plastic</option>
+              <option value="metal">Metal</option>
+              <option value="matte">Matte</option>
+            </select>
+          </label>
+        </div>
+        <div class="group">
+          <label>
+            Texture
+            <select id="textureSelect">
+              <option value="none" selected>None</option>
+              <option value="checker">Checker</option>
+            </select>
+          </label>
+        </div>
+        <div class="group">
+          <button id="toggleDoor">Toggle Door</button>
+        </div>
+        <div class="group">
+          <label class="row">
+            <input type="checkbox" id="toggleLight" /> Light On
+          </label>
+        </div>
+      </header>
+      <main class="stage">
+        <canvas id="three"></canvas>
+      </main>
+    </div>
+
+    <script type="module">
+      import './src/app.js';
+    </script>
+  </body>
+</html>

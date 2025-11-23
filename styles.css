@@ -1,0 +1,13 @@
+* { box-sizing: border-box; }
+html, body, #app { height: 100%; margin: 0; }
+body { color: #e5e7eb; background: #0b0f14; font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
+
+.toolbar { position: fixed; top: 0; left: 0; right: 0; display: flex; gap: 12px; align-items: center; padding: 10px 12px; background: rgba(15, 18, 24, 0.85); backdrop-filter: blur(8px); border-bottom: 1px solid rgba(255,255,255,0.06); z-index: 10; }
+.toolbar .group { display: flex; align-items: center; gap: 8px; color: #d1d5db; }
+.toolbar label { display: flex; align-items: center; gap: 8px; }
+.toolbar select, .toolbar input[type="color"], .toolbar button { padding: 6px 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.12); background: #0f172a; color: #e5e7eb; }
+.toolbar button { cursor: pointer; }
+.toolbar .row { gap: 6px; }
+
+.stage { position: absolute; inset: 0; padding-top: 54px; }
+canvas { display: block; width: 100%; height: calc(100% - 54px); }
