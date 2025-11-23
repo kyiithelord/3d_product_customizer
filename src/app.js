@@ -1,6 +1,7 @@
-import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
-import { OrbitControls } from 'https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js';
-import { RoomEnvironment } from 'https://unpkg.com/three@0.160.0/examples/jsm/environments/RoomEnvironment.js';
+import * as THREE from 'https://esm.sh/three@0.160.0';
+import { OrbitControls } from 'https://esm.sh/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+import { RoomEnvironment } from 'https://esm.sh/three@0.160.0/examples/jsm/environments/RoomEnvironment.js';
+import { GLTFLoader } from 'https://esm.sh/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
 
 const canvas = document.getElementById('three');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
@@ -34,41 +35,52 @@ ground.position.y = -0.025;
 ground.receiveShadow = true;
 scene.add(ground);
 
-// Product mock: body + door + light indicator
-const product = new THREE.Group();
-scene.add(product);
+// Product refs (will point to either mock or GLB parts)
+let product, body, doorPivot, door, indicator;
 
-// Base material (editable)
-const baseMaterial = new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.2, roughness: 0.5 });
+function createMockProduct() {
+  const group = new THREE.Group();
+  scene.add(group);
 
-// Body
-const body = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.0, 1.0), baseMaterial.clone());
-body.position.y = 0.5;
-body.castShadow = true;
-product.add(body);
+  const baseMaterial = new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.2, roughness: 0.5 });
 
-// Door (pivoted on the side)
-const doorPivot = new THREE.Object3D();
-doorPivot.position.set(-0.8, 0.6, 0.5);
-product.add(doorPivot);
+  const mockBody = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.0, 1.0), baseMaterial.clone());
+  mockBody.position.y = 0.5;
+  mockBody.castShadow = true;
+  group.add(mockBody);
 
-const door = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.9), baseMaterial.clone());
-door.position.set(0, 0, 0);
-door.rotation.y = Math.PI; // face outward
-// shift door so hinge aligns with pivot
-const doorHolder = new THREE.Object3D();
-doorHolder.position.set(0.6, -0.1, 0); // center to pivot
-const doorFrame = new THREE.Group();
-doorFrame.add(door);
-doorHolder.add(doorFrame);
-doorPivot.add(doorHolder);
+  const mockDoorPivot = new THREE.Object3D();
+  mockDoorPivot.position.set(-0.8, 0.6, 0.5);
+  group.add(mockDoorPivot);
 
-// Indicator light
-const indicatorMat = new THREE.MeshStandardMaterial({ color: 0x222222, emissive: 0x000000, metalness: 0.0, roughness: 0.3 });
-const indicator = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.02, 24), indicatorMat);
-indicator.rotation.x = Math.PI / 2;
-indicator.position.set(0.6, 1.0, 0.51);
-product.add(indicator);
+  const mockDoor = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.9), baseMaterial.clone());
+  mockDoor.position.set(0, 0, 0);
+  mockDoor.rotation.y = Math.PI; // face outward
+  const doorHolder = new THREE.Object3D();
+  doorHolder.position.set(0.6, -0.1, 0);
+  const doorFrame = new THREE.Group();
+  doorFrame.add(mockDoor);
+  doorHolder.add(doorFrame);
+  mockDoorPivot.add(doorHolder);
+
+  const indicatorMat = new THREE.MeshStandardMaterial({ color: 0x222222, emissive: 0x000000, metalness: 0.0, roughness: 0.3 });
+  const mockIndicator = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.02, 24), indicatorMat);
+  mockIndicator.rotation.x = Math.PI / 2;
+  mockIndicator.position.set(0.6, 1.0, 0.51);
+  group.add(mockIndicator);
+
+  return { group, mockBody, mockDoorPivot, mockDoor, mockIndicator };
+}
+
+// Initialize with mock; may be replaced by GLB
+{
+  const mock = createMockProduct();
+  product = mock.group;
+  body = mock.mockBody;
+  doorPivot = mock.mockDoorPivot;
+  door = mock.mockDoor;
+  indicator = mock.mockIndicator;
+}
 
 // Scene lights
 const hemi = new THREE.HemisphereLight(0xffffff, 0x202020, 0.6);
@@ -83,6 +95,40 @@ scene.add(keyLight);
 const pointLight = new THREE.PointLight(0xffe9a6, 0.0, 10, 2);
 pointLight.position.set(0.6, 1.0, 0.7);
 scene.add(pointLight);
+
+// Try to load GLB model if present; fallback to mock
+const loader = new GLTFLoader();
+loader.load(
+  './assets/model.glb',
+  (gltf) => {
+    const root = gltf.scene;
+    root.traverse((o) => {
+      if (o.isMesh && o.material && o.material.isMeshStandardMaterial) {
+        o.material.envMapIntensity = 1.0;
+      }
+    });
+    scene.add(root);
+
+    // Try to bind named parts from GLB, else keep mock references
+    const glbBody = root.getObjectByName('Body');
+    const glbDoorPivot = root.getObjectByName('DoorPivot');
+    const glbDoor = root.getObjectByName('Door');
+    const glbIndicator = root.getObjectByName('Indicator');
+
+    if (glbBody && glbDoorPivot && glbDoor) {
+      // Hide mock and switch refs to GLB
+      product.visible = false;
+      body = glbBody;
+      doorPivot = glbDoorPivot;
+      door = glbDoor;
+      if (glbIndicator) indicator = glbIndicator;
+    }
+  },
+  undefined,
+  () => {
+    // On error, keep mock silently
+  }
+);
 
 // Texture: simple checker generated on the fly
 function makeChecker(size = 256, squares = 8) {
